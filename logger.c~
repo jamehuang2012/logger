@@ -270,8 +270,7 @@ static void *logger_thread(void *arg)
 
 	    result = pthread_mutex_unlock(&logger_mutex);
 	    if (result != 0) {
-		/* critical issue if this issue has been invoked */
-		
+				
 	    }
 	    break;
 	}
