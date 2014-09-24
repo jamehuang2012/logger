@@ -21,6 +21,25 @@
 #include "logger.h"
 #include "queue.h"
 
+
+pthread_once_t logger_init_block = PTHREAD_ONCE_INIT;
+
+static pthread_t logger_thread_id = 0;
+
+
+
+static void *logger_thread(void *arg);
+static uint8_t logger_active = 1;
+static pthread_t dio_thread_id = 0;
+
+
+static pthread_mutex_t logger_mutex;	/* Protects access to value */
+static pthread_cond_t logger_cond;
+struct LogList logger_list;
+
+
+
+
 static unsigned long current_log_limit = (4 * 1024 * 1024);
 
 struct LogList  log_list;
@@ -245,19 +264,22 @@ void log_send_queue(const char *module_name,int debug_level,
 		
 		sprintf(message, "%s%s",title,body);
 		
-		result = pthread_mutex_lock(&log_mutex);
+		result = pthread_mutex_lock(&logger_mutex);
 		if ( result != 0 ) {
-			fprintf(stderr,"pthread mutex lock error = %d\n", result;
+			fprintf(stderr,"pthread mutex lock error = %d\n", result);
 			return -1;
 		}
 		
 		/* put the message into queue */ 
 		
-		entry = 
+		entry = log_add_list_entry(&log_list,message);
+		
+		result = pthread_cond_signal(&logger_cond);
+		
 		 
-		result = pthread_mutex_unlock(&log_mutex);
+		result = pthread_mutex_unlock(&logger_mutex);
 		if ( result != 0 ) {
-			fprintf(stderr,"pthread mutex lock error = %d\n", result;
+			fprintf(stderr,"pthread mutex lock error = %d\n", result);
 			return -1;
 		}
 		
@@ -271,20 +293,6 @@ void log_send_queue(const char *module_name,int debug_level,
 */
 
 
-pthread_once_t logger_init_block = PTHREAD_ONCE_INIT;
-
-static pthread_t logger_thread_id = 0;
-
-
-
-static void *logger_thread(void *arg);
-static uint8_t logger_active = 1;
-static pthread_t dio_thread_id = 0;
-
-
-static pthread_mutex_t logger_mutex;	/* Protects access to value */
-static pthread_cond_t logger_cond;
-struct LogList logger_list;
 
 
 /* 
