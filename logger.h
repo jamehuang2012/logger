@@ -28,8 +28,7 @@ typedef struct  {
 	char log_buf[MAX_LOG_LEN];
 
 }LogMessage;
-void log_append_to_file(char *filename, char *str, char *sourceFile,
-			int fileLine);
+void log_append_to_file(char *file_name, char *str);
 
 void hex_log_append_to_file(char *filename, char *str, int length,
 			    char *sourceFile, int fileLine);

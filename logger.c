@@ -23,6 +23,7 @@
 
 static unsigned long current_log_limit = (4 * 1024 * 1024);
 
+struct LogList  log_list;
 
 /*
  * Check the file size , if file size more than current_log_limit
@@ -99,19 +100,10 @@ int check_log_level(int level)
 
 }
 
-void log_append_to_file(char *file_name, char *str, char *source_filename,
-			int file_line)
+void log_append_to_file(char *file_name, char *str)
 {
 	int ret;
-	struct timeval  cur_time;
-	time_t t;
-	time(&t);
-	struct tm *tp = localtime(&t);
-	char now_str[100];
-	char backup[100];
-	gettimeofday(&cur_time,NULL);
-	int milli = cur_time.tv_usec / 1000;
-	strftime(now_str, 100, "%Y-%m-%d %H:%M:%S", tp);
+	
 
 	check_file_size(file_name);
 
@@ -122,7 +114,7 @@ void log_append_to_file(char *file_name, char *str, char *source_filename,
 	}
 	/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
 
-	fprintf(fo, "%s:%03d %s(:%d):%s\n", now_str,milli, source_filename, file_line, str);
+	fprintf(fo, "%s\n", str);
 	fclose(fo);
 }
 
@@ -228,6 +220,52 @@ void log_output(const char *log_file_name,const char *module_name,int debug_leve
 }
 
 
+void log_send_queue(const char *module_name,int debug_level,
+		const char *source_file_name,const char *fctn,int line, char *format, ...)
+{		
+		int milli;
+		int result;
+		va_list args;
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		milli = tv.tv_usec / 100;
+		char title[128];
+		char body[MAX_LOG_LEN];
+		char message[MAX_LOG_LEN*2];
+		struct LogEntry *entry;
+	
+		/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
+		char buffer [80];
+		strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	
+		sprintf(title, "[%s][%s %s:%04d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
+		va_start(args, format);
+		vsprintf(body, format, args);
+		va_end(args);
+		
+		sprintf(message, "%s%s",title,body);
+		
+		result = pthread_mutex_lock(&log_mutex);
+		if ( result != 0 ) {
+			fprintf(stderr,"pthread mutex lock error = %d\n", result;
+			return -1;
+		}
+		
+		/* put the message into queue */ 
+		
+		entry = 
+		 
+		result = pthread_mutex_unlock(&log_mutex);
+		if ( result != 0 ) {
+			fprintf(stderr,"pthread mutex lock error = %d\n", result;
+			return -1;
+		}
+		
+		
+		
+		
+}
+
 /* 
 	Logfile thread 
 */
@@ -260,34 +298,59 @@ static void *logger_thread(void *arg)
 {
     int result;
 	char log_buffer[MAX_LOG_LEN+1];
+    struct LogEntry *entry;
     
     
+    log_init_list(&log_list);
+    pthread_detach(pthread_self());
+
+
+
     while ( logger_active == 1) {
     
-	result = pthread_mutex_lock(&logger_mutex);
-	if (result != 0) {
-	
-	    fprintf(stderr,"Pthread mutex lock error\n");
-	}
+		result = pthread_mutex_lock(&logger_mutex);
+		if (result != 0) {
+		
+			fprintf(stderr,"Pthread mutex lock error\n");
+		}
 
-	if (log_entry_empty(&logger_list) == 0 || logger_active != 0){
-	    result = pthread_cond_wait(&logger_cond, &logger_mutex);
-	}
-	
+		if (log_entry_empty(&logger_list) == 0 || logger_active != 0){
+			result = pthread_cond_wait(&logger_cond, &logger_mutex);
+		}
+		
 
-	if (logger_active == 0) {
+		if (logger_active == 0) {
 
-	    result = pthread_mutex_unlock(&logger_mutex);
-	    if (result != 0) {
-			/* critical issue if system has this error */
-			fprintf(stderr,"unlock thread error =%d",result);
+			result = pthread_mutex_unlock(&logger_mutex);
+			if (result != 0) {
+				/* critical issue if system has this error */
+				fprintf(stderr,"unlock thread error =%d",result);
+				
+			}
+			break;
+		}
+			/* get first logger item from queue */
+		
+			entry = log_get_first_entry(&log_list);
 			
-	    }
-	    break;
-	}
-		/* get first logger item from queue */
-	
-    }
+			if (entry != NULL ) {
+				memcpy(log_buffer,entry->message,sizeof(char)*MAX_LOG_LEN);
+				log_del_first_entry(&log_list);
+				entry = NULL;
+			} 
+			
+			result = pthread_mutex_unlock(&logger_mutex);
+			if (result != 0) 
+				fprintf(stderr,"mutex unlock error = %d\n", result);
+				
+			
+			/* write the log buffer to files */
+			
+			log_append_to_file(LOG_FILENAME,log_buffer);
+
+			
+			
+		}
 		
 }
 
@@ -342,7 +405,7 @@ int logger_close(void)
 int main(int argc, char **argv) 
 {
 	ALOGI("CCR","%s","hello world");
-	ALOGD("CCR","%s","hello world");
-	ALOGW("CCR","%s","hello world");
-	ALOGE("CCR","%s","hello world");
+	ALOGD("PDM","%s","hello world");
+	ALOGW("SCM","%s","hello world");
+	ALOGE("PPS","%s","hello world");
 }
