@@ -43,16 +43,17 @@ struct LogEntry *log_add_list_entry(struct LogList *list,
 	if (!entry) {
 		return NULL;
 	}
-	entry->message = (char *)calloc(1,(sizeof(char) * MAX_LOG_LEN));
+	entry->message = (char *)calloc(1,(sizeof(char)*MAX_LOG_LEN));
 	if (entry->message == NULL) {
 		free(entry);
 		return NULL;
 	}
 	
-	if (strlen(message) < MAX_LOG_LEN)
-		memcpy(entry->message , message,strlen(message));
+	if (strlen(message) > MAX_LOG_LEN) 
+		memcpy(entry->message , message,sizeof(char)*MAX_LOG_LEN);
 	else
-		memcpy(entry->message , message,MAX_LOG_LEN-1);
+		memcpy(entry->message , message,strlen(message));
+	
 
 	TAILQ_INSERT_TAIL(&list->head, entry, entries);
 	list->size++;
