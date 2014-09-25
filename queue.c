@@ -57,7 +57,7 @@ struct LogEntry *log_add_list_entry(struct LogList *list,
 
 	TAILQ_INSERT_TAIL(&list->head, entry, entries);
 	list->size++;
-
+	fprintf(stderr,"list size = %d\n",list->size);
 	return entry;
 }
 
@@ -96,7 +96,7 @@ void log_del_first_entry(struct LogList *list)
 		list->size--;
 		free(entry->message);
 		free(entry);
-
+		
 	}
 
 }

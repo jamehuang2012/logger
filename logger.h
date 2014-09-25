@@ -16,6 +16,7 @@
 #define DEFAULT_LOG_LIMIT   (4 * 1024 * 1024)
 #define MAX_LOG_LEN      256
 
+#define LOGGER_DAEMON
 /* loggger file format */
 /*
  * 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit
@@ -37,7 +38,26 @@ void log_func(const char *file_name,int debug_level, char *format, ...);
 
 void log_output(const char *log_file_name,const char *module_name,int debug_level,
 		const char *source_file_name,const char *fctn,int line, char *format, ...);
+		
+
+void log_send_queue(const char *module_name,int debug_level,
+		const char *source_file_name,const char *fctn,int line, char *format, ...);
+		
 /* macro for different Debug LEVEL */
+
+#ifdef LOGGER_DAEMON
+
+#ifdef DEBUG
+	#define ALOGD(module_name,fmt,args...) log_send_queue(module_name, LEVEL_DEBUG, __FILE__,__func__,__LINE__,fmt,##args);
+#else
+	#define ALOGD(module_name,fmt,args...) 
+#endif
+#define ALOGI(module_name,fmt,args...) log_send_queue(module_name, LEVEL_INFO, __FILE__,__func__,__LINE__,fmt,##args);
+#define ALOGW(module_name,fmt,args...) log_send_queue(module_name, LEVEL_WARNING, __FILE__,__func__,__LINE__,fmt,##args);
+#define ALOGE(module_name,fmt,args...) log_send_queue(module_name, LEVEL_ERROR, __FILE__,__func__,__LINE__,fmt,##args);
+
+
+#else /* write log file directly */
 #ifdef DEBUG
 	#define ALOGD(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_DEBUG, __FILE__,__func__,__LINE__,fmt,##args);
 #else
@@ -46,5 +66,5 @@ void log_output(const char *log_file_name,const char *module_name,int debug_leve
 #define ALOGI(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_INFO, __FILE__,__func__,__LINE__,fmt,##args);
 #define ALOGW(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_WARNING, __FILE__,__func__,__LINE__,fmt,##args);
 #define ALOGE(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_ERROR, __FILE__,__func__,__LINE__,fmt,##args);
-
+#endif
 #endif

@@ -30,7 +30,7 @@ static pthread_t logger_thread_id = 0;
 
 static void *logger_thread(void *arg);
 static uint8_t logger_active = 1;
-static pthread_t dio_thread_id = 0;
+
 
 
 static pthread_mutex_t logger_mutex;	/* Protects access to value */
@@ -42,7 +42,7 @@ struct LogList logger_list;
 
 static unsigned long current_log_limit = (4 * 1024 * 1024);
 
-struct LogList  log_list;
+
 
 /*
  * Check the file size , if file size more than current_log_limit
@@ -125,15 +125,17 @@ void log_append_to_file(char *file_name, char *str)
 	
 
 	check_file_size(file_name);
-
+	fprintf(stderr,"log_append_to_file\n");
 	FILE *fo;
 	fo = fopen(file_name, "a");
 	if (fo == NULL) {
+		fprintf(stderr,"fail to open %s file\n",file_name);
 		return;
 	}
 	/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
 
 	fprintf(fo, "%s\n", str);
+	
 	fclose(fo);
 }
 
@@ -247,7 +249,7 @@ void log_send_queue(const char *module_name,int debug_level,
 		va_list args;
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
-		milli = tv.tv_usec / 100;
+		milli = tv.tv_usec / 10;
 		char title[128];
 		char body[MAX_LOG_LEN];
 		char message[MAX_LOG_LEN*2];
@@ -257,30 +259,32 @@ void log_send_queue(const char *module_name,int debug_level,
 		char buffer [80];
 		strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
 	
-		sprintf(title, "[%s][%s %s:%04d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
+		sprintf(title, "[%s][%s %s:%05d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
 		va_start(args, format);
 		vsprintf(body, format, args);
 		va_end(args);
 		
 		sprintf(message, "%s%s",title,body);
 		
+		
 		result = pthread_mutex_lock(&logger_mutex);
 		if ( result != 0 ) {
 			fprintf(stderr,"pthread mutex lock error = %d\n", result);
-			return -1;
+			return;
 		}
 		
 		/* put the message into queue */ 
 		
-		entry = log_add_list_entry(&log_list,message);
+		
+		entry = log_add_list_entry(&logger_list,message);
 		
 		result = pthread_cond_signal(&logger_cond);
 		
-		 
+		fprintf(stderr,"send signal\n");
 		result = pthread_mutex_unlock(&logger_mutex);
 		if ( result != 0 ) {
 			fprintf(stderr,"pthread mutex lock error = %d\n", result);
-			return -1;
+			return ;
 		}
 		
 		
@@ -309,11 +313,11 @@ static void *logger_thread(void *arg)
     struct LogEntry *entry;
     
     
-    log_init_list(&log_list);
+    log_init_list(&logger_list);
     pthread_detach(pthread_self());
 
 
-
+	
     while ( logger_active == 1) {
     
 		result = pthread_mutex_lock(&logger_mutex);
@@ -321,14 +325,17 @@ static void *logger_thread(void *arg)
 		
 			fprintf(stderr,"Pthread mutex lock error\n");
 		}
+		
+		fprintf(stderr," list num =%d\n", log_entry_empty(&logger_list));
 
-		if (log_entry_empty(&logger_list) == 0 || logger_active != 0){
+		if (log_entry_empty(&logger_list) == 0 && logger_active != 0){
+			
 			result = pthread_cond_wait(&logger_cond, &logger_mutex);
 		}
 		
-
+		
 		if (logger_active == 0) {
-
+			fprintf(stderr,"quit\n");
 			result = pthread_mutex_unlock(&logger_mutex);
 			if (result != 0) {
 				/* critical issue if system has this error */
@@ -338,14 +345,15 @@ static void *logger_thread(void *arg)
 			break;
 		}
 			/* get first logger item from queue */
-		
-			entry = log_get_first_entry(&log_list);
+			fprintf(stderr,"get message actuve=%d\n",logger_active);
+			entry = log_get_first_entry(&logger_list);
 			
 			if (entry != NULL ) {
 				memcpy(log_buffer,entry->message,sizeof(char)*MAX_LOG_LEN);
-				log_del_first_entry(&log_list);
+				log_del_first_entry(&logger_list);
 				entry = NULL;
 			} 
+			
 			
 			result = pthread_mutex_unlock(&logger_mutex);
 			if (result != 0) 
@@ -358,7 +366,7 @@ static void *logger_thread(void *arg)
 
 			
 			
-		}
+	}
 		
 }
 
@@ -372,7 +380,7 @@ void logger_init_routinue(void)
 	/* Initialize logfile , create /open log file */
 
 	/* create the call back thread */
-        if ((rc = pthread_create(&dio_thread_id, NULL, logger_thread,
+        if ((rc = pthread_create(&logger_thread_id, NULL, logger_thread,
 	                        (void *) NULL))) {
 	    fprintf(stderr,"Create Thread error %d\n",rc);
 	 }
@@ -405,15 +413,48 @@ int logger_init(void)
 
 int logger_close(void)
 {
-  
+	int result;
+    logger_active = 0;
     
+    result = pthread_mutex_lock(&logger_mutex);
+	if ( result != 0 ) {
+			fprintf(stderr,"pthread mutex lock error = %d\n", result);
+			return -1;
+	}
+		
+		/* put the message into queue */ 
+		
+		
+	result = pthread_cond_signal(&logger_cond);
+		
+		 
+	result = pthread_mutex_unlock(&logger_mutex);
+	if ( result != 0 ) {
+		fprintf(stderr,"pthread mutex lock error = %d\n", result);
+		return -1;
+	}
+	
+	
+		
 }
 
 
 int main(int argc, char **argv) 
 {
+	int i;
+#ifdef LOGGER_DAEMON
+	logger_init();
+#endif
+	for (i=0; i < 10; i++) {
 	ALOGI("CCR","%s","hello world");
 	ALOGD("PDM","%s","hello world");
 	ALOGW("SCM","%s","hello world");
 	ALOGE("PPS","%s","hello world");
+	
+		usleep(1000*1000);
+	}
+#ifdef LOGGER_DAEMON
+	logger_close();
+#endif
+	
 }
