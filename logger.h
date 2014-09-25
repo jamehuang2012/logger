@@ -42,6 +42,13 @@ void log_output(const char *log_file_name,const char *module_name,int debug_leve
 
 void log_send_queue(const char *module_name,int debug_level,
 		const char *source_file_name,const char *fctn,int line, char *format, ...);
+
+int logger_init(void);
+
+int logger_close(void);
+
+
+		
 		
 /* macro for different Debug LEVEL */
 

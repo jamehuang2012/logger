@@ -5,7 +5,7 @@
 EXE=test
 
 #SOURCES = font_8x16.c font_8x8.c  fbutils.c
-OBJECTS=logger.o queue.o
+OBJECTS=logger.o queue.o main.o
 INCLUDE=-I/usr/include/lua5.1
 LDFLAGS= -lrt -lpthread
 CFLAGS += -g -DDEBUG

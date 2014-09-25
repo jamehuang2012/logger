@@ -437,24 +437,3 @@ int logger_close(void)
 	
 		
 }
-
-
-int main(int argc, char **argv) 
-{
-	int i;
-#ifdef LOGGER_DAEMON
-	logger_init();
-#endif
-	for (i=0; i < 10; i++) {
-	ALOGI("CCR","%s","hello world");
-	ALOGD("PDM","%s","hello world");
-	ALOGW("SCM","%s","hello world");
-	ALOGE("PPS","%s","hello world");
-	
-		usleep(1000*1000);
-	}
-#ifdef LOGGER_DAEMON
-	logger_close();
-#endif
-	
-}
