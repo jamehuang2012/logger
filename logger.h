@@ -14,12 +14,9 @@
 #define DEFAULT_LOG_LIMIT   (4 * 1024 * 1024)
 
 void log_append_to_file(char *filename, char *str, char *sourceFile,
-			int fileLine);
-
 void hex_log_append_to_file(char *filename, char *str, int length,
-			    char *sourceFile, int fileLine);
 void log_func(const char *file_name,int debug_level, char *format, ...);
-
 void log_output(const char *log_file_name,int debug_level,const char *source_file_name,const char *fctn,int line, char *format, ...);
+
 
 #endif
