@@ -2,10 +2,11 @@
 #define _PDM_LIST_H_
 
 #include <sys/queue.h>
+#include "logger.h"
 
 #define PM_THREAD	0
 #define PDM_THREAD	1
-#define MAX_LOG_LEN      256
+
 
 struct LogEntry{
 	 char *message;

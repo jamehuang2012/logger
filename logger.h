@@ -7,16 +7,47 @@
 #define LEVEL_INFO      (int)4
 #define LEVEL_DEBUG     (int)5
 
+#define LOG_FILENAME "peripheral.log"
+
 #define DEFAULT_LOG_LEVEL   LEVEL_DEBUG
 
 #define LEVEL_NO_PERMIT  -1
 #define LEVEL_PERMIT 	1
 #define DEFAULT_LOG_LIMIT   (4 * 1024 * 1024)
+#define MAX_LOG_LEN      256
 
+/* loggger file format */
+/*
+ * 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit
+ *   Module Name, DEBUG LEVEL timestamp File name, line 
+ */
+typedef struct  {
+	char title[12];
+	char file_name[32];
+	int line;
+	char log_buf[MAX_LOG_LEN];
+
+}LogMessage;
 void log_append_to_file(char *filename, char *str, char *sourceFile,
 void hex_log_append_to_file(char *filename, char *str, int length,
 void log_func(const char *file_name,int debug_level, char *format, ...);
+<<<<<<< HEAD
 void log_output(const char *log_file_name,int debug_level,const char *source_file_name,const char *fctn,int line, char *format, ...);
+=======
+
+
+void log_output(const char *log_file_name,const char *module_name,int debug_level,
+		const char *source_file_name,const char *fctn,int line, char *format, ...);
+/* macro for different Debug LEVEL */
+#ifdef DEBUG
+	#define ALOGD(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_DEBUG, __FILE__,__func__,__LINE__,fmt,##args);
+#else
+	#define ALOGD(module_name,fmt,args...) 
+#endif
+#define ALOGI(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_INFO, __FILE__,__func__,__LINE__,fmt,##args);
+#define ALOGW(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_WARNING, __FILE__,__func__,__LINE__,fmt,##args);
+#define ALOGE(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_ERROR, __FILE__,__func__,__LINE__,fmt,##args);
+>>>>>>> 1877e27e5b91a73f85a41f524e40646e749372a0
 
 
 #endif

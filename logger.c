@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 #include "logger.h"
 #include "queue.h"
@@ -42,7 +43,7 @@ void check_file_size(const char *filename)
 		if (file_size > current_log_limit ) {
 
 					sprintf(backup_filename,"%s.0",filename);
-					LogListrename(filename,backup_filename);
+					rename(filename,backup_filename);
 
 		}
 
@@ -66,16 +67,16 @@ static char *level_to_str(int debug_level)
 		level = "CRITICAL";
 		break;
 	case LEVEL_ERROR:
-		level = "ERROR";
+		level = "ERR ";
 		break;
 	case LEVEL_WARNING:
-		level = "WARNING";
+		level = "WAR ";
 		break;
 	case LEVEL_INFO:
 		level = "INFO";
 		break;
 	case LEVEL_DEBUG:
-		level = "DEBUG";
+		level = "DGB ";
 		break;
 	default:
 		level = "UNKNOWN";
@@ -98,27 +99,30 @@ int check_log_level(int level)
 
 }
 
-void log_append_to_file(char *file_name, char *str, char *sourceFile,
-			int fileLine)
+void log_append_to_file(char *file_name, char *str, char *source_filename,
+			int file_line)
 {
 	int ret;
+	struct timeval  cur_time;
 	time_t t;
 	time(&t);
 	struct tm *tp = localtime(&t);
 	char now_str[100];
 	char backup[100];
+	gettimeofday(&cur_time,NULL);
+	int milli = cur_time.tv_usec / 1000;
 	strftime(now_str, 100, "%Y-%m-%d %H:%M:%S", tp);
 
 	check_file_size(file_name);
 
 	FILE *fo;
 	fo = fopen(file_name, "a");
-	if (fo == 0) {
+	if (fo == NULL) {
 		return;
 	}
+	/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
 
-
-	fprintf(fo, "%s %s(:%d):%s\n", now_str, sourceFile, fileLine, str);
+	fprintf(fo, "%s:%03d %s(:%d):%s\n", now_str,milli, source_filename, file_line, str);
 	fclose(fo);
 }
 
@@ -187,12 +191,14 @@ void log_func(const char *file_name,int debug_level, char *format, ...)
 
 }
 
-void log_output(const char *log_file_name,int debug_level,const char *source_file_name,const char *fctn,int line, char *format, ...)
+void log_output(const char *log_file_name,const char *module_name,int debug_level,
+		const char *source_file_name,const char *fctn,int line, char *format, ...)
 {
 	va_list args;
 	struct timeval tv;
 	char *time;
-
+	int milli;
+	
 
 	if (check_log_level(debug_level) == LEVEL_NO_PERMIT)
 		return;
@@ -204,10 +210,13 @@ void log_output(const char *log_file_name,int debug_level,const char *source_fil
 
 
 		gettimeofday(&tv, NULL);
-		time = ctime(&tv.tv_sec);
-		time[strlen(time) - 1] = 0;
-
-		fprintf(fo, "[%s: %s %s %s %d]:", time, level_to_str(debug_level),source_file_name,fctn,line);
+		milli = tv.tv_usec / 100;
+	
+		/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
+		char buffer [80];
+		strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	
+		fprintf(fo, "[%s][%s %s:%04d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
 		va_start(args, format);
 		vfprintf(fo, format, args);
 		va_end(args);
@@ -250,7 +259,7 @@ struct LogList logger_list;
 static void *logger_thread(void *arg)
 {
     int result;
-  
+	char log_buffer[MAX_LOG_LEN+1];
     
     
     while ( logger_active == 1) {
@@ -261,7 +270,7 @@ static void *logger_thread(void *arg)
 	    fprintf(stderr,"Pthread mutex lock error\n");
 	}
 
-	if (logger_entry_empty(&logger_list) == 0 || logger_active != 0){
+	if (log_entry_empty(&logger_list) == 0 || logger_active != 0){
 	    result = pthread_cond_wait(&logger_cond, &logger_mutex);
 	}
 	
@@ -270,12 +279,13 @@ static void *logger_thread(void *arg)
 
 	    result = pthread_mutex_unlock(&logger_mutex);
 	    if (result != 0) {
-		/* critical issue if this issue has been invoked */
-		
+			/* critical issue if system has this error */
+			fprintf(stderr,"unlock thread error =%d",result);
+			
 	    }
 	    break;
 	}
-	/* get first logger item from queue */
+		/* get first logger item from queue */
 	
     }
 		
@@ -316,8 +326,23 @@ int logger_init(void)
 	return 0;
 }
 
+/* 
+ * 
+ * stop the service thread 
+ * 
+ */
+
 int logger_close(void)
 {
   
     
+}
+
+
+int main(int argc, char **argv) 
+{
+	ALOGI("CCR","%s","hello world");
+	ALOGD("CCR","%s","hello world");
+	ALOGW("CCR","%s","hello world");
+	ALOGE("CCR","%s","hello world");
 }
