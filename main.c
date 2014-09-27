@@ -11,7 +11,8 @@ void *msg_thread_func(void *threadid)
    long tid;
    tid = (long)threadid;
    for (i = 0 ; i < 10 ; i ++) {
-		ALOGD("TST","tid = %d thread id = %d %d",tid,pthread_self(),i);
+//		ALOGD("TST","tid = %d thread id = %d %d",tid,pthread_self(),i);
+		ALOGHEX("HXT","\x34\x67\x33\x77\x80",5);
 		usleep(50000);
    }
    
