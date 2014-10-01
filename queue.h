@@ -20,7 +20,7 @@ struct LogList {
 };
 
 struct LogEntry *log_add_list_entry(struct LogList *list,
-					char * message);
+					char * message,int length);
 
 void log_init_list(struct LogList *list);
 

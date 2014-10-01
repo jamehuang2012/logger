@@ -9,10 +9,11 @@ void *msg_thread_func(void *threadid)
 {
    int i;
    long tid;
+   char buf[256];
    tid = (long)threadid;
    for (i = 0 ; i < 10 ; i ++) {
-//		ALOGD("TST","tid = %d thread id = %d %d",tid,pthread_self(),i);
-		ALOGHEX("HXT","\x34\x67\x33\x77\x80",5);
+		ALOGD("TST","tid = %d thread id = %d %d",tid,pthread_self(),i);
+		ALOGHEX("HXT",buf,256);
 		usleep(50000);
    }
    
