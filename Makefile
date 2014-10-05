@@ -8,7 +8,7 @@ EXE=test
 OBJECTS=logger.o queue.o main.o
 INCLUDE=-I/usr/include/lua5.1
 LDFLAGS= -lrt -lpthread
-CFLAGS += -g -DDEBUG
+#CFLAGS += -g -DDEBUG
 
 .SUFFIXES: .o .c .cpp .cc .cxx .C
 all:$(EXE) disclean

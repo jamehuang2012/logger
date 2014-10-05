@@ -22,16 +22,9 @@
  * 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit
  *   Module Name, DEBUG LEVEL timestamp File name, line 
  */
-typedef struct  {
-	char title[12];
-	char file_name[32];
-	int line;
-	char log_buf[MAX_LOG_LEN];
+void log_append_to_file(const char *file_name, char *str);
 
-}LogMessage;
-void log_append_to_file(char *file_name, char *str);
-
-void hex_log_append_to_file(char *filename, char *str, int length,
+void hex_log_append_to_file(const char *filename, char *str, int length,
 			    char *sourceFile, int fileLine);
 void log_func(const char *file_name,int debug_level, char *format, ...);
 
@@ -47,7 +40,9 @@ int logger_init(void);
 
 int logger_close(void);
 
-		
+
+
+
 		
 /* macro for different Debug LEVEL */
 
