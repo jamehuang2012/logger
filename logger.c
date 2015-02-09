@@ -125,7 +125,6 @@ void log_append_to_file(char *file_name, char *str)
 	
 
 	check_file_size(file_name);
-	fprintf(stderr,"log_append_to_file\n");
 	FILE *fo;
 	fo = fopen(file_name, "a");
 	if (fo == NULL) {
@@ -251,7 +250,7 @@ void log_send_queue(const char *module_name,int debug_level,
 		gettimeofday(&tv, NULL);
 		milli = tv.tv_usec / 10;
 		char title[128];
-		char body[MAX_LOG_LEN];
+		char body[MAX_LOG_LEN*2];
 		char message[MAX_LOG_LEN*2];
 		struct LogEntry *entry;
 	
@@ -261,10 +260,76 @@ void log_send_queue(const char *module_name,int debug_level,
 	
 		sprintf(title, "[%s][%s %s:%05d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
 		va_start(args, format);
-		vsprintf(body, format, args);
+		//result = vsprintf(body, format, args);
+		result = vsnprintf(body,MAX_LOG_LEN,format,args);	
 		va_end(args);
+		if ( result > 0) 
+			sprintf(message, "%s%s",title,body);
+		else
+			sprintf(message, "%s",title);
 		
-		sprintf(message, "%s%s",title,body);
+	
+		
+		result = pthread_mutex_lock(&logger_mutex);
+		if ( result != 0 ) {
+			fprintf(stderr,"pthread mutex lock error = %d\n", result);
+			return;
+		}
+		
+		/* put the message into queue */ 
+	
+			
+		
+		entry = log_add_list_entry(&logger_list,message,strlen(message));
+		
+		result = pthread_cond_signal(&logger_cond);
+		
+		result = pthread_mutex_unlock(&logger_mutex);
+		if ( result != 0 ) {
+			fprintf(stderr,"pthread mutex lock error = %d\n", result);
+			return ;
+		}
+		
+		
+		
+		
+}
+
+
+void log_send_hexmessage(const char *module_name,int debug_level,
+		const char *source_file_name,const char *fctn,int line, char *str, int length)
+{		
+		int milli;
+		int result,i;
+		va_list args;
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		milli = tv.tv_usec / 10;
+		char title[128];
+		char body[MAX_LOG_LEN*4];
+		char message[MAX_LOG_LEN*4];
+		struct LogEntry *entry;
+		char *msg=body;
+	
+		/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
+		char buffer [80];
+		strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	
+		sprintf(title, "[%s][%s %s:%05d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
+		
+		
+		for (i = 0; i < length; i++) {
+			sprintf(msg, "%.2X ", (unsigned char)str[i]);
+			msg +=3;
+			if (((i + 1) % 16) == 0) {
+				sprintf(msg, "\n");
+				msg++;
+			}
+		}
+	
+		
+		sprintf(message, "%s\n%s\n",title,body);
+ 	
 		
 		
 		result = pthread_mutex_lock(&logger_mutex);
@@ -276,11 +341,12 @@ void log_send_queue(const char *module_name,int debug_level,
 		/* put the message into queue */ 
 		
 		
-		entry = log_add_list_entry(&logger_list,message);
+		
+		
+		entry = log_add_list_entry(&logger_list,message,strlen(message));
 		
 		result = pthread_cond_signal(&logger_cond);
 		
-		fprintf(stderr,"send signal\n");
 		result = pthread_mutex_unlock(&logger_mutex);
 		if ( result != 0 ) {
 			fprintf(stderr,"pthread mutex lock error = %d\n", result);
@@ -291,6 +357,7 @@ void log_send_queue(const char *module_name,int debug_level,
 		
 		
 }
+
 
 /* 
 	Logfile thread 
@@ -313,7 +380,6 @@ static void *logger_thread(void *arg)
     struct LogEntry *entry;
     
     
-    log_init_list(&logger_list);
     pthread_detach(pthread_self());
 
 
@@ -326,7 +392,6 @@ static void *logger_thread(void *arg)
 			fprintf(stderr,"Pthread mutex lock error\n");
 		}
 		
-		fprintf(stderr," list num =%d\n", log_entry_empty(&logger_list));
 
 		if (log_entry_empty(&logger_list) == 0 && logger_active != 0){
 			
@@ -335,7 +400,6 @@ static void *logger_thread(void *arg)
 		
 		
 		if (logger_active == 0) {
-			fprintf(stderr,"quit\n");
 			result = pthread_mutex_unlock(&logger_mutex);
 			if (result != 0) {
 				/* critical issue if system has this error */
@@ -345,11 +409,12 @@ static void *logger_thread(void *arg)
 			break;
 		}
 			/* get first logger item from queue */
-			fprintf(stderr,"get message actuve=%d\n",logger_active);
 			entry = log_get_first_entry(&logger_list);
 			
 			if (entry != NULL ) {
-				memcpy(log_buffer,entry->message,sizeof(char)*MAX_LOG_LEN);
+			
+			//	memcpy(log_buffer,entry->message,sizeof(char)*MAX_LOG_LEN);
+				log_append_to_file(LOG_FILENAME,entry->message);
 				log_del_first_entry(&logger_list);
 				entry = NULL;
 			} 
@@ -362,7 +427,8 @@ static void *logger_thread(void *arg)
 			
 			/* write the log buffer to files */
 			
-			log_append_to_file(LOG_FILENAME,log_buffer);
+			
+//			log_append_to_file(LOG_FILENAME,log_buffer);
 
 			
 			
@@ -376,10 +442,12 @@ static void *logger_thread(void *arg)
 void logger_init_routinue(void)
 {
 	
-      int rc;
+        int rc;
 	/* Initialize logfile , create /open log file */
 
+    	log_init_list(&logger_list);
 	/* create the call back thread */
+	fprintf(stderr,"start logging ...\n");
         if ((rc = pthread_create(&logger_thread_id, NULL, logger_thread,
 	                        (void *) NULL))) {
 	    fprintf(stderr,"Create Thread error %d\n",rc);

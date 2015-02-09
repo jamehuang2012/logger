@@ -7,7 +7,7 @@
 #define LEVEL_INFO      (int)4
 #define LEVEL_DEBUG     (int)5
 
-#define LOG_FILENAME "peripheral.log"
+#define LOG_FILENAME "/usr/scu/logs/peripherals.log"
 
 #define DEFAULT_LOG_LEVEL   LEVEL_DEBUG
 
@@ -47,7 +47,6 @@ int logger_init(void);
 
 int logger_close(void);
 
-
 		
 		
 /* macro for different Debug LEVEL */
@@ -56,12 +55,15 @@ int logger_close(void);
 
 #ifdef DEBUG
 	#define ALOGD(module_name,fmt,args...) log_send_queue(module_name, LEVEL_DEBUG, __FILE__,__func__,__LINE__,fmt,##args);
+	#define ALOGHEX(module_name,str,length)  log_send_hexmessage(module_name,LEVEL_DEBUG,__FILE__,__func__,__LINE__, str,length);
 #else
 	#define ALOGD(module_name,fmt,args...) 
+	#define ALOGHEX(module_name,str,length) 
 #endif
 #define ALOGI(module_name,fmt,args...) log_send_queue(module_name, LEVEL_INFO, __FILE__,__func__,__LINE__,fmt,##args);
 #define ALOGW(module_name,fmt,args...) log_send_queue(module_name, LEVEL_WARNING, __FILE__,__func__,__LINE__,fmt,##args);
 #define ALOGE(module_name,fmt,args...) log_send_queue(module_name, LEVEL_ERROR, __FILE__,__func__,__LINE__,fmt,##args);
+ 
 
 
 #else /* write log file directly */

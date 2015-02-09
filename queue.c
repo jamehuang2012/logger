@@ -34,7 +34,7 @@
  *
  **********************************************************/
 struct LogEntry *log_add_list_entry(struct LogList *list,
-					char * message)
+					char * message,int length)
 {
     	int rc;
 	struct LogEntry *entry;
@@ -43,21 +43,22 @@ struct LogEntry *log_add_list_entry(struct LogList *list,
 	if (!entry) {
 		return NULL;
 	}
-	entry->message = (char *)calloc(1,(sizeof(char)*MAX_LOG_LEN));
+	entry->message = (char *)calloc(1,(sizeof(char)*length));
 	if (entry->message == NULL) {
 		free(entry);
 		return NULL;
 	}
-	
+#if 0	
 	if (strlen(message) > MAX_LOG_LEN) 
 		memcpy(entry->message , message,sizeof(char)*MAX_LOG_LEN);
 	else
 		memcpy(entry->message , message,strlen(message));
+#endif 
 	
+	memcpy(entry->message , message,length);
 
 	TAILQ_INSERT_TAIL(&list->head, entry, entries);
 	list->size++;
-	fprintf(stderr,"list size = %d\n",list->size);
 	return entry;
 }
 
