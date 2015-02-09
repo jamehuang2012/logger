@@ -119,7 +119,7 @@ int check_log_level(int level)
 
 }
 
-void log_append_to_file(char *file_name, char *str)
+void log_append_to_file(const char *file_name, char *str)
 {
 	int ret;
 	
@@ -138,7 +138,7 @@ void log_append_to_file(char *file_name, char *str)
 	fclose(fo);
 }
 
-void hex_log_append_to_file(char *file_name, char *str, int length,
+void hex_log_append_to_file(const char *file_name, char *str, int length,
 			    char *sourceFile, int fileLine)
 {
 	int ret;
@@ -257,8 +257,12 @@ void log_send_queue(const char *module_name,int debug_level,
 		/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
 		char buffer [80];
 		strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-	
+#ifdef DEBUG	
 		sprintf(title, "[%s][%s %s:%05d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
+#else 
+
+		sprintf(title, "[%s][%s %s:%05d %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,line);
+#endif 
 		va_start(args, format);
 		//result = vsprintf(body, format, args);
 		result = vsnprintf(body,MAX_LOG_LEN,format,args);	
@@ -268,6 +272,7 @@ void log_send_queue(const char *module_name,int debug_level,
 		else
 			sprintf(message, "%s",title);
 		
+<<<<<<< HEAD
 	
 		
 		result = pthread_mutex_lock(&logger_mutex);
@@ -330,6 +335,69 @@ void log_send_hexmessage(const char *module_name,int debug_level,
 		
 		sprintf(message, "%s\n%s\n",title,body);
  	
+
+		
+		fprintf(stderr,"%s",(char *)message);
+		
+		result = pthread_mutex_lock(&logger_mutex);
+		if ( result != 0 ) {
+			fprintf(stderr,"pthread mutex lock error = %d\n", result);
+			return;
+		}
+		
+		/* put the message into queue */ 
+		
+		entry = log_add_list_entry(&logger_list,message,strlen(message));
+		
+		result = pthread_cond_signal(&logger_cond);
+		
+		result = pthread_mutex_unlock(&logger_mutex);
+		if ( result != 0 ) {
+			fprintf(stderr,"pthread mutex lock error = %d\n", result);
+			return ;
+		}
+		
+		
+		
+		
+}
+
+
+<<<<<<< HEAD
+=======
+void log_send_hexmessage(const char *module_name,int debug_level,
+		const char *source_file_name,const char *fctn,int line, char *str, int length)
+{		
+		int milli;
+		int result,i;
+		va_list args;
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		milli = tv.tv_usec / 10;
+		char title[128];
+		char body[MAX_LOG_LEN*4];
+		char message[MAX_LOG_LEN*4];
+		struct LogEntry *entry;
+		char *msg=body;
+	
+		/* 	[CCR][DBG 09/24/14 13:13:00:365 ccr.c 1315] scheduler: add exit */
+		char buffer [80];
+		strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	
+ 		
+		sprintf(title, "[%s][%s %s:%05d %s %s %d]:",module_name,  level_to_str(debug_level),buffer,milli,source_file_name,fctn,line);
+
+		for (i = 0; i < length; i++) {
+			sprintf(msg, "%.2X ", (unsigned char)str[i]);
+			msg +=3;
+			if (((i + 1) % 16) == 0) {
+				sprintf(msg, "\n");
+				msg++;
+			}
+		}
+		
+		sprintf(message, "%s\n%s\n",title,body);
+ 		fprintf(stderr,"%s",(char *)message);
 		
 		
 		result = pthread_mutex_lock(&logger_mutex);
@@ -412,7 +480,6 @@ static void *logger_thread(void *arg)
 			entry = log_get_first_entry(&logger_list);
 			
 			if (entry != NULL ) {
-			
 			//	memcpy(log_buffer,entry->message,sizeof(char)*MAX_LOG_LEN);
 				log_append_to_file(LOG_FILENAME,entry->message);
 				log_del_first_entry(&logger_list);
@@ -482,9 +549,8 @@ int logger_init(void)
 int logger_close(void)
 {
 	int result;
-    logger_active = 0;
     
-    result = pthread_mutex_lock(&logger_mutex);
+     	result = pthread_mutex_lock(&logger_mutex);
 	if ( result != 0 ) {
 			fprintf(stderr,"pthread mutex lock error = %d\n", result);
 			return -1;
@@ -492,6 +558,7 @@ int logger_close(void)
 		
 		/* put the message into queue */ 
 		
+    	logger_active = 0;
 		
 	result = pthread_cond_signal(&logger_cond);
 		
