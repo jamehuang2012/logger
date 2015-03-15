@@ -22,6 +22,7 @@
 #include "queue.h"
 
 static unsigned long current_log_limit = (4 * 1024 * 1024);
+//#define current_log_limit  (4 * 1024 * 1024)
 
 
 /*

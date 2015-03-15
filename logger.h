@@ -28,12 +28,8 @@ typedef struct  {
 	char log_buf[MAX_LOG_LEN];
 
 }LogMessage;
-void log_append_to_file(char *filename, char *str, char *sourceFile,
-void hex_log_append_to_file(char *filename, char *str, int length,
+
 void log_func(const char *file_name,int debug_level, char *format, ...);
-<<<<<<< HEAD
-void log_output(const char *log_file_name,int debug_level,const char *source_file_name,const char *fctn,int line, char *format, ...);
-=======
 
 
 void log_output(const char *log_file_name,const char *module_name,int debug_level,
@@ -47,7 +43,6 @@ void log_output(const char *log_file_name,const char *module_name,int debug_leve
 #define ALOGI(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_INFO, __FILE__,__func__,__LINE__,fmt,##args);
 #define ALOGW(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_WARNING, __FILE__,__func__,__LINE__,fmt,##args);
 #define ALOGE(module_name,fmt,args...) log_output(LOG_FILENAME,module_name, LEVEL_ERROR, __FILE__,__func__,__LINE__,fmt,##args);
->>>>>>> 1877e27e5b91a73f85a41f524e40646e749372a0
 
 
 #endif
